@@ -11,7 +11,7 @@ sys.path.append("../../")
 import transpiler_thing.gen
 import transpiler_thing.parse 
 
-input_excel = r"C:\Users\horse\projects\github\MuMo-CoCo\MuMo-CoCo_v0.xlsm"
+input_excel = "simple_formula_testing.xlsx"
 
 result = transpiler_thing.gen.scan_excel(input_excel)
 transpiler_thing.gen.dump_scanned_formulas(result, "workspace")
@@ -33,9 +33,9 @@ with open(formulas_csv, "r") as f:
         formula = row["formula"]
         
         try:
-            if formula_id == 106:
-                nodes = transpiler_thing.parse.excel_formula_to_IR(formula)
-                print(nodes)
+            # if formula_id == 106:
+            nodes = transpiler_thing.parse.excel_formula_to_IR(formula)
+            print(nodes)
 
         except Exception as e:
             print("formula_id = " + str(formula_id))
