@@ -1,6 +1,7 @@
 
 import sys 
 import csv 
+import traceback 
 
 sys.path.append("../../")
 
@@ -34,12 +35,13 @@ with open(formulas_csv, "r") as f:
         
         try:
             # if formula_id == 106:
-            nodes = transpiler_thing.parse.excel_formula_to_IR(formula)
-            print(nodes)
+            nodes = transpiler_thing.parse.excel_formula_to_IR(formula, in_sheet=sheet)
+            # print(nodes)
 
         except Exception as e:
             print("formula_id = " + str(formula_id))
-            print(e)
+            print("Exception: " + str(e))
+            print(traceback.format_exc())
             quit()
 
 
