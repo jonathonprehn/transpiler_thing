@@ -11,6 +11,7 @@ sys.path.append("../../")
 
 import transpiler_thing.gen
 import transpiler_thing.parse 
+import transpiler_thing.ast_to_python
 
 input_excel = "simple_formula_testing.xlsx"
 
@@ -25,24 +26,30 @@ transpiler_thing.gen.dump_scanned_constants(result, "workspace")
 
 
 formulas_csv = transpiler_thing.gen.dump_scanned_formulas_path("workspace")
-with open(formulas_csv, "r") as f:
-    rdr = csv.DictReader(f)
-    for row in rdr:
-        formula_id = int(row["formula_id"])
-        sheet = row["sheet"]
-        name = row["cell_or_name"]
-        formula = row["formula"]
+formulas_nodes = transpiler_thing.parse.parse_formulas_csv(formulas_csv)
+constants_csv = transpiler_thing.gen.dump_scanned_constants_path("workspace")
+
+programInfo = transpiler_thing.ast_to_python.ProgramInfo()
+
+with open(constants_csv, "r") as cfp:
+    drdr = csv.DictReader(cfp)
+    for rw in drdr:
+        _id = rw["const_id"] 
+        sheet = rw["sheet"]
+        name = rw["cell_or_name"]
+        val = rw["value"]
+        # parse the value as a string or a number?
         
-        try:
-            # if formula_id == 106:
-            nodes = transpiler_thing.parse.excel_formula_to_IR(formula, in_sheet=sheet)
-            # print(nodes)
-
-        except Exception as e:
-            print("formula_id = " + str(formula_id))
-            print("Exception: " + str(e))
-            print(traceback.format_exc())
-            quit()
+        programInfo.define_const(sheet, name, val)
 
 
+with open("code.py", "w") as codefp:
+    
+    for formula_obj in formulas_nodes:
+        programInfo.set_func_name_for(formula_obj["sheet"], formula_obj["name"], "formula_" + str(formula_obj["formula_id"]))
 
+    for formula_obj in formulas_nodes:
+        formula_code = transpiler_thing.ast_to_python.formula_to_python_function(formula_obj, programInfo)
+        codefp.write(formula_code)
+        codefp.write("\n")
+    

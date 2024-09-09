@@ -141,7 +141,7 @@ def dump_scanned_constants(scan_r, folder):   # input ScanResults to this one
     const_file = dump_scanned_constants_path(folder)
     with open(const_file, "w", newline="") as fp:
         wr = csv.writer(fp)
-        wr.writerow(["formula_id", "sheet", "cell_or_name", "formula"])
+        wr.writerow(["const_id", "sheet", "cell_or_name", "value"])
         for scope in scan_r.const:
             for nm in scan_r.const[scope]:
                 t = (scope, nm)

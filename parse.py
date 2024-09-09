@@ -1,6 +1,8 @@
 
 import os 
 import sys 
+import csv 
+import traceback 
 
 from .gen import ExcelScanResults 
 
@@ -578,7 +580,7 @@ def tokens_to_ast_Formula(tokens, in_sheet=None):
 
 def tokens_to_ast_Function(tokens, ptr, in_sheet=None):
 
-    print("checking if its a function, ptr = " + str(ptr) + ", token = " + str(tokens[ptr]) )
+    # print("checking if its a function, ptr = " + str(ptr) + ", token = " + str(tokens[ptr]) )
 
     func_name = None 
     params = []
@@ -590,29 +592,32 @@ def tokens_to_ast_Function(tokens, ptr, in_sheet=None):
     else:
         return None, ptr 
     
-    print("got function name, is the next symbol a (" )
+    # print("got function name, is the next symbol a (" )
 
     # match (
     if inc_ptr < len(tokens) and tokens[inc_ptr].nodetype() == "symbol":
         if tokens[inc_ptr].get_symbol() == '(':
             inc_ptr = inc_ptr + 1
-            print("yeah next symbol is (" )
+            # print("yeah next symbol is (" )
         else:
-            print("no next symbol is actually " + str(tokens[inc_ptr].get_symbol()) )
+            # print("no next symbol is actually " + str(tokens[inc_ptr].get_symbol()) )
             return None, ptr
     else:
-        print("next node is not a symbol at all")
+        # print("next node is not a symbol at all")
         return None, ptr
     
 
     # match 0 or more params 
 
     func_ended = False 
+    param_num = 1
 
     while not func_ended:
 
         param_node = None 
-        
+
+        # print("parsing parameter # " + str(param_num))
+
         if param_node is None:
             param_node, inc_ptr = tokens_to_ast_Expr(tokens, inc_ptr, in_sheet=in_sheet)
 
@@ -628,29 +633,34 @@ def tokens_to_ast_Function(tokens, ptr, in_sheet=None):
         if inc_ptr < len(tokens) and tokens[inc_ptr].nodetype() == "symbol":
             if tokens[inc_ptr].get_symbol() == ',':
                 matched_comma = True  
+                inc_ptr = inc_ptr + 1
 
         # if did not match a comma, need ) 
 
         # match )
         if not matched_comma:
+            # print("Didn't match a comma, is it gonna match ) to end the function?")
             if inc_ptr < len(tokens) and tokens[inc_ptr].nodetype() == "symbol":
                 if tokens[inc_ptr].get_symbol() == ')':
                     func_ended = True  
+                    inc_ptr = inc_ptr + 1
+                    # print("I ended the function, it matched )")
 
-        inc_ptr = inc_ptr + 1
         
-        if inc_ptr >= len(tokens):
-            return None, ptr  # syntax error, didn't end properly
+        
+        param_num = param_num + 1
 
-    print("got params")
-    for p in params:
-        print(p)
+        if not matched_comma and not func_ended:
+            print("badly formed function call. Need to check the parser or your syntax")
+            return None, ptr 
+
+    # print("got params")
+    # for p in params:
+    #     print(p)
 
 
     # matched, construct function node and return 
     func_node = FunctionCallNode(func_name, params)
-
-    print("got a function call!, ptr = " + str(inc_ptr) + ", token = " + str(tokens[inc_ptr]) )
 
     return func_node, inc_ptr
 
@@ -893,10 +903,33 @@ def tokens_to_ast_Constant(tokens, ptr):
 
 
 
+def parse_formulas_csv(formulas_csv):
+    formulas_parsed = []
+    with open(formulas_csv, "r") as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            formula_id = int(row["formula_id"])
+            sheet = row["sheet"]
+            name = row["cell_or_name"]
+            formula = row["formula"]
+            
+            try:
 
+                nodes = excel_formula_to_IR(formula, in_sheet=sheet)
+                formulas_parsed.append({
+                    "formula_id" : formula_id,  # unique formula id 
+                    "sheet" : sheet,  # sheet it was in 
+                    "name" : name,  # cell ref or variable name. This will also be unique! I think?
+                    "formula" : formula,  # text of the formula from excel 
+                    "parsed" : nodes,  # AST object of this formula 
+                })
+            except Exception as e:
+                print("formula_id = " + str(formula_id))
+                print("Exception: " + str(e))
+                print(traceback.format_exc())
+                quit()
 
-def materialize_ir_to_python(node, target_function):
-    pass 
+    return formulas_parsed
 
 
 
